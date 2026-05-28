@@ -1,16 +1,15 @@
 # Korean Vocab App
 
-Ứng dụng web 3-tier đơn giản để học từ vựng tiếng Hàn cơ bản cho người Việt Nam.
+Ung dung web 3-tier don gian de hoc tu vung tieng Han co ban.
 
-Stack:
+## Stack
 
 - Frontend: React + Vite
 - Backend: Node.js + Express
 - Database: PostgreSQL
+- Container: Docker, Docker Compose
 
-Mục tiêu hiện tại: chạy local trước khi đóng gói Docker, Kubernetes, Helm và ArgoCD.
-
-## Cấu Trúc
+## Cau Truc Project
 
 ```text
 korean-vocab-app/
@@ -18,133 +17,171 @@ korean-vocab-app/
 +-- backend/
 +-- database/
 +-- docs/
++-- docker-compose.yml
 ```
 
-## Chức Năng MVP
+## Chuc Nang MVP
 
-- Hiển thị danh sách từ vựng tiếng Hàn.
-- Thêm từ vựng mới.
-- Xóa từ vựng.
-- Quiz trắc nghiệm 4 đáp án.
-- API health check cho Kubernetes sau này.
-- Frontend hiển thị environment và app version.
+- Hien thi danh sach tu vung tieng Han.
+- Them tu vung moi.
+- Xoa tu vung.
+- Quiz trac nghiem 4 dap an.
+- Quiz lay cac dap an trong cung chu de voi cau hoi.
+- API health check cho Docker/Kubernetes.
+- Frontend hien thi environment va app version.
 
-## Database
+## Chay Bang Docker Compose
 
-Ứng dụng chỉ dùng 1 bảng: `vocabularies`.
+Day la cach chay khuyen nghi hien tai. Ban can cai Docker Desktop truoc.
 
-Các cột:
+Tu thu muc root cua project:
 
-- `id`
-- `korean`
-- `romanization`
-- `vietnamese_meaning`
-- `category`
-- `example_sentence`
-- `created_at`
+```powershell
+docker compose up --build
+```
 
-File seed database:
+Hoac chay nen:
+
+```powershell
+docker compose up --build -d
+```
+
+Sau khi chay xong:
 
 ```text
-database/init.sql
+Frontend: http://localhost:8080
+Backend:  http://localhost:3000
+Health:   http://localhost:3000/api/health
 ```
 
-File này tạo bảng `vocabularies` và seed 50 từ vựng tiếng Hàn cơ bản.
+Docker Compose se tao 3 service:
 
-## Chạy Local Nhanh
+```text
+frontend -> backend -> postgres
+```
 
-Yêu cầu máy đã có:
+Chi tiet:
 
-- Node.js LTS
-- PostgreSQL
-- Database `korean_vocab` đã được tạo và đã chạy `database/init.sql`
+- `postgres`: PostgreSQL 16, tao database `korean_vocab`.
+- `backend`: Express API, ket noi database bang host `postgres`.
+- `frontend`: React/Vite build static, serve bang Nginx o port `80` trong container.
 
-Nếu chưa biết cài Node.js/PostgreSQL hoặc chưa biết tạo database, xem hướng dẫn chi tiết tại:
+File `database/init.sql` duoc mount vao PostgreSQL va chay tu dong khi volume database duoc tao lan dau.
+
+## Lenh Docker Compose Huu Ich
+
+Xem container dang chay:
+
+```powershell
+docker compose ps
+```
+
+Xem logs:
+
+```powershell
+docker compose logs -f
+```
+
+Dung app:
+
+```powershell
+docker compose down
+```
+
+Dung app va xoa ca database volume de seed lai tu dau:
+
+```powershell
+docker compose down -v
+```
+
+Build lai rieng tung service:
+
+```powershell
+docker compose build backend
+docker compose build frontend
+```
+
+## Chay Tung Docker Image Rieng Le
+
+Build backend:
+
+```powershell
+docker build -t korean-vocab-backend:local ./backend
+```
+
+Build frontend:
+
+```powershell
+docker build -t korean-vocab-frontend:local ./frontend
+```
+
+Neu chay backend container rieng le va PostgreSQL dang nam tren may host, dung:
+
+```powershell
+docker run --name korean-vocab-backend --rm -p 3000:3000 --env-file backend/.env -e DB_HOST=host.docker.internal korean-vocab-backend:local
+```
+
+Chay frontend:
+
+```powershell
+docker run --name korean-vocab-frontend --rm -p 8080:80 korean-vocab-frontend:local
+```
+
+## Chay Local Khong Dung Docker
+
+Neu muon chay truc tiep tren may ca nhan, xem huong dan chi tiet:
 
 ```text
 docs/local-manual-setup.md
 ```
 
-### 1. Backend
+Tom tat yeu cau:
 
-Windows PowerShell:
+- Node.js LTS
+- PostgreSQL
+- Database `korean_vocab`
+- Da chay file `database/init.sql`
+
+Backend:
 
 ```powershell
-cd D:\DevOps\Fsoft\3_Docker\lab\korean-vocab-app\backend
+cd backend
 Copy-Item .env.example .env
 npm install
 npm run dev
 ```
 
-Linux/macOS:
-
-```bash
-cd korean-vocab-app/backend
-cp .env.example .env
-npm install
-npm run dev
-```
-
-Backend chạy tại:
-
-```text
-http://localhost:3000
-```
-
-Health check:
-
-```text
-http://localhost:3000/api/health
-```
-
-### 2. Frontend
-
-Mở terminal khác.
-
-Windows PowerShell:
+Frontend:
 
 ```powershell
-cd D:\DevOps\Fsoft\3_Docker\lab\korean-vocab-app\frontend
+cd frontend
 Copy-Item .env.example .env
 npm install
 npm run dev
 ```
 
-Linux/macOS:
+## Bien Moi Truong
 
-```bash
-cd korean-vocab-app/frontend
-cp .env.example .env
-npm install
-npm run dev
-```
-
-Frontend chạy tại:
-
-```text
-http://localhost:5173
-```
-
-## Biến Môi Trường
-
-Backend đọc config từ `backend/.env`:
+Backend:
 
 ```env
 PORT=3000
-DB_HOST=localhost
+DB_HOST=postgres
 DB_PORT=5432
 DB_NAME=korean_vocab
 DB_USER=postgres
 DB_PASSWORD=postgres
-APP_ENV=local
+APP_ENV=docker
 APP_VERSION=v1.0.0
 ```
 
-Frontend đọc config từ `frontend/.env`:
+Frontend:
 
 ```env
 VITE_API_BASE_URL=http://localhost:3000
 ```
+
+Luu y: voi Vite, bien `VITE_API_BASE_URL` duoc dua vao ung dung trong luc build frontend image.
 
 ## API
 
@@ -155,17 +192,41 @@ VITE_API_BASE_URL=http://localhost:3000
 - `DELETE /api/vocabularies/:id`
 - `GET /api/quiz`
 
-## Lộ Trình Lab Tiếp Theo
+## Database
 
-Repo này hiện chưa có Dockerfile, docker-compose, Kubernetes manifest, Helm chart hoặc ArgoCD config.
+Ung dung dung bang `vocabularies`.
 
-Sau khi app chạy local ổn, có thể làm tiếp theo thứ tự:
+Cot chinh:
 
-1. Dockerfile cho backend.
-2. Dockerfile cho frontend.
-3. docker-compose để chạy frontend, backend, PostgreSQL.
-4. Kubernetes manifests.
-5. Helm chart.
-6. ArgoCD GitOps deployment.
+- `id`
+- `korean`
+- `romanization`
+- `vietnamese_meaning`
+- `category`
+- `example_sentence`
+- `created_at`
 
-Khi đã có Docker hoặc docker-compose, phần cài PostgreSQL thủ công trong `docs/local-manual-setup.md` sẽ không còn là luồng chạy chính nữa.
+Seed data nam tai:
+
+```text
+database/init.sql
+```
+
+File nay tao bang `vocabularies` va seed 50 tu vung tieng Han co ban.
+
+## Lo Trinh Lab Tiep Theo
+
+Da hoan thanh:
+
+- App local.
+- Dockerfile cho backend.
+- Dockerfile cho frontend.
+- Docker Compose cho frontend, backend, PostgreSQL.
+
+Nen lam tiep:
+
+1. Kubernetes manifests.
+2. ConfigMap/Secret.
+3. PersistentVolumeClaim cho PostgreSQL.
+4. Helm chart.
+5. ArgoCD GitOps deployment.
