@@ -3,3 +3,13 @@ dist/
 .env
 npm-debug.log*
 .DS_Store
+
+# Terraform / Ansible generated files and secrets
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+infra/ansible/inventory.ini
+infra/ansible/kubeconfig
+*.pem
